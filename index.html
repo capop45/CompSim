@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Simulador de Ensaio de Compressão</title>
+    <title>Simulador de Ensaio de Compressão - Mobile Ready</title>
     <style>
         :root {
             --bg-color: #f4f4f9;
@@ -32,6 +32,18 @@
         
         canvas { display: block; outline: none; }
 
+        /* Navegação Mobile (Gavetas) */
+        #mobile-nav {
+            display: none; position: absolute; top: 15px; left: 0; width: 100%;
+            justify-content: space-between; padding: 0 15px; box-sizing: border-box;
+            z-index: 100; pointer-events: none;
+        }
+        #mobile-nav button {
+            pointer-events: auto; background: var(--panel-bg); border: 1px solid var(--border-color);
+            color: var(--text-color); padding: 10px 15px; border-radius: 8px; font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2); cursor: pointer; text-transform: uppercase;
+        }
+
         /* Camada de UI Principal */
         #ui-layer { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
@@ -40,19 +52,14 @@
         }
 
         .panel {
-            pointer-events: auto;
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            backdrop-filter: blur(5px);
-            padding: 15px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            max-height: 100%;
-            overflow-y: auto;
+            pointer-events: auto; background: var(--panel-bg); border: 1px solid var(--border-color);
+            border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(5px);
+            padding: 15px; box-sizing: border-box; display: flex; flex-direction: column;
+            max-height: 100%; overflow-y: auto;
         }
+
+        .close-panel { display: none; text-align: right; margin-bottom: 5px; }
+        .close-panel span { font-size: 24px; cursor: pointer; color: var(--text-color); font-weight: bold; }
 
         /* Painel Esquerdo (Configurações) */
         #settings-panel { width: 300px; }
@@ -79,18 +86,16 @@
             display: flex; gap: 15px; pointer-events: auto; z-index: 10;
         }
 
-        #top-left-controls { position: absolute; top: 20px; left: 20px; pointer-events: auto; z-index: 10; display: none; } /* Oculto no desktop, painel cobre */
-
-        button {
+        button.btn-action {
             padding: 12px 20px; font-size: 14px; font-weight: bold; cursor: pointer;
             border: 1px solid var(--border-color); border-radius: 5px;
             background: var(--panel-bg); color: var(--text-color);
             box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.2s; text-transform: uppercase;
         }
 
-        button:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
-        button:active:not(:disabled) { transform: translateY(0); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        button.btn-action:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+        button.btn-action:active:not(:disabled) { transform: translateY(0); }
+        button.btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
         
         #btn-play { background: var(--accent-color); color: white; border: none; min-width: 160px; }
         #btn-play.paused { background: #28a745; }
@@ -101,32 +106,42 @@
             margin-bottom: 10px; opacity: 0; transition: opacity 0.3s; text-transform: uppercase;
         }
 
-        /* Responsividade para Celulares (Mobile) */
+        /* Responsividade para Mobile (Drawers) */
         @media (max-width: 768px) {
-            #ui-layer { 
-                flex-direction: column; padding: 10px; justify-content: flex-start; gap: 10px;
-                overflow-y: auto; pointer-events: auto; /* Permite rolar a tela toda */
+            #mobile-nav { display: flex; }
+            #ui-layer { padding: 0; justify-content: center; }
+            
+            .panel {
+                position: fixed; top: 0; bottom: 0; height: 100%; max-height: 100%;
+                z-index: 1000; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                border-radius: 0; width: 85%; max-width: 350px;
             }
             
-            .panel { width: 100%; max-height: none; overflow: visible; box-shadow: none; border-width: 2px; }
-            #dashboard { order: -1; } /* Dashboard em cima no mobile */
+            #settings-panel { left: 0; transform: translateX(-100%); border-right: 2px solid var(--accent-color); }
+            #settings-panel.open { transform: translateX(0); }
             
-            #controls-bottom {
-                position: relative; bottom: auto; left: auto; transform: none;
-                width: 100%; justify-content: center; margin-top: 10px; margin-bottom: 20px;
-            }
+            #dashboard { right: 0; transform: translateX(100%); border-left: 2px solid var(--accent-color); width: 85%; }
+            #dashboard.open { transform: translateX(0); }
+
+            .close-panel { display: block; }
+            #btn-theme { display: none; } /* Oculta o alternador de tema principal no mobile para economizar espaço, opcional */
             
-            #btn-theme-mobile { width: 100%; margin-top: 10px; }
-            #top-left-controls { display: none; }
-            canvas { position: fixed; top: 0; left: 0; z-index: -1; } /* 3D fica fixo no fundo */
+            #controls-bottom { bottom: 20px; width: 90%; justify-content: center; }
+            #btn-play { flex-grow: 1; }
         }
     </style>
 </head>
 <body>
 
+    <div id="mobile-nav">
+        <button id="btn-toggle-settings">⚙️ Ajustes</button>
+        <button id="btn-toggle-dash">📊 Dados</button>
+    </div>
+
     <div id="ui-layer">
         <div id="settings-panel" class="panel">
-            <button id="btn-theme">Alternar Tema</button>
+            <div class="close-panel"><span onclick="document.getElementById('settings-panel').classList.remove('open')">×</span></div>
+            <button id="btn-theme" class="btn-action">Alternar Tema</button>
             <div class="section-title" style="margin-top: 15px;">Corpo de Prova</div>
             
             <div class="input-group">
@@ -151,10 +166,11 @@
                 <label>Flecha Máxima (mm):</label>
                 <input type="number" id="in-flecha" value="17.36" min="1" max="100" step="1">
             </div>
-            <button id="btn-aplicar">Aplicar Alterações</button>
+            <button id="btn-aplicar" class="btn-action">Aplicar Alterações</button>
         </div>
 
         <div id="dashboard" class="panel">
+            <div class="close-panel"><span onclick="document.getElementById('dashboard').classList.remove('open')">×</span></div>
             <div id="status-ensaio">Status Aqui</div>
             <div class="section-title">Mecânica da Fratura</div>
             
@@ -167,8 +183,8 @@
     </div>
 
     <div id="controls-bottom">
-        <button id="btn-play">INICIAR ENSAIO</button>
-        <button id="btn-reset">RESET</button>
+        <button id="btn-play" class="btn-action">INICIAR ENSAIO</button>
+        <button id="btn-reset" class="btn-action">RESET</button>
     </div>
 
     <script type="importmap">
@@ -208,6 +224,15 @@
         const ctx = canvasGraph.getContext('2d');
         const statusEnsaio = document.getElementById('status-ensaio');
 
+        // Drawer Toggles (Mobile)
+        document.getElementById('btn-toggle-settings').addEventListener('click', () => {
+            document.getElementById('settings-panel').classList.add('open');
+        });
+        document.getElementById('btn-toggle-dash').addEventListener('click', () => {
+            document.getElementById('dashboard').classList.add('open');
+            resizeCanvas(); 
+        });
+
         // --- VARIÁVEIS DE SIMULAÇÃO ---
         let larguraPilar = 0.20;
         let alturaPilar = 2.50;
@@ -235,7 +260,7 @@
         camera.position.set(4, 3, 6);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Otimiza performance no mobile
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -244,8 +269,7 @@
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.target.set(0, 1.5, 0);
-        // Desabilita pan com botão direito para não bugar no mobile
-        controls.enablePan = false;
+        controls.enablePan = false; // Evita bugar no mobile com touch
         controls.update();
 
         // --- GERENCIAMENTO DE TEMA ---
@@ -264,7 +288,6 @@
         }
         btnTheme.addEventListener('click', () => applyTheme(!isDarkMode));
 
-        // Sincroniza labels
         inLarg.addEventListener('input', e => outLarg.innerText = parseFloat(e.target.value).toFixed(2));
         inAlt.addEventListener('input', e => outAlt.innerText = parseFloat(e.target.value).toFixed(2));
         inProf.addEventListener('input', e => outProf.innerText = parseFloat(e.target.value).toFixed(2));
@@ -275,7 +298,7 @@
         const luzDirecional = new THREE.DirectionalLight(0xffffff, 2);
         luzDirecional.position.set(5, 10, 5);
         luzDirecional.castShadow = true;
-        luzDirecional.shadow.mapSize.width = 1024; // Otimizado
+        luzDirecional.shadow.mapSize.width = 1024; 
         luzDirecional.shadow.mapSize.height = 1024;
         scene.add(luzDirecional);
         scene.add(new THREE.AmbientLight(0xffffff, 0.5));
@@ -302,7 +325,7 @@
         for(let k=0; k<35; k++) { 
             let caminho = [];
             let x = Math.random() * 512;
-            let y = Math.random() * 80; // Rachaduras descem mais
+            let y = Math.random() * 80; 
             caminho.push({x, y});
             for(let step=0; step<5 + Math.random() * 8; step++) {
                 x += (Math.random() - 0.5) * 50;
@@ -359,28 +382,16 @@
         conjuntoMovelSuperior.position.y = posPrensaDescanso;
         maquina.add(conjuntoMovelSuperior);
 
-        // --- CRIAÇÃO DO PILAR COM TOPO IRREGULAR ("QUEBRADO") ---
+        // --- CRIAÇÃO DO PILAR (LISO NO INÍCIO) ---
         let pilar;
         function gerarPilar() {
             if(pilar) {
                 scene.remove(pilar);
                 pilar.geometry.dispose();
             }
-            // Usa mais segmentos verticais (16) e horizontais (8) para poder entortar os vértices
+            // Cria a geometria lisa. A subdivisão (8, 16, 8) permite que deformemos os vértices mais tarde
             const geo = new THREE.BoxGeometry(larguraPilar, alturaPilar, profundidadePilar, 8, 16, 8);
-            const pos = geo.attributes.position;
-            
-            // Lógica para amassar o topo
-            for(let i = 0; i < pos.count; i++) {
-                let y = pos.getY(i);
-                // Se o vértice estiver na face superior (margem de erro para float)
-                if (y > (alturaPilar / 2) - 0.01) {
-                    // Desce o vértice aleatoriamente (até 8cm), criando buracos/irregularidades
-                    pos.setY(i, y - (Math.random() * 0.08));
-                }
-            }
-            geo.computeVertexNormals(); // Recalcula a luz para a nova forma
-            geo.translate(0, alturaPilar / 2, 0); // Joga o pivô pra base
+            geo.translate(0, alturaPilar / 2, 0); 
             
             pilar = new THREE.Mesh(geo, matPilar);
             pilar.castShadow = true; pilar.receiveShadow = true;
@@ -388,7 +399,22 @@
             scene.add(pilar);
         }
         
-        gerarPilar(); // Chama na inicialização
+        // --- FUNÇÃO PARA DEFORMAR O TOPO (CHAMADA APENAS NA RUPTURA) ---
+        function deformarTopoPilar() {
+            if(!pilar) return;
+            const pos = pilar.geometry.attributes.position;
+            for(let i = 0; i < pos.count; i++) {
+                let y = pos.getY(i);
+                // O pivô está na base (0), o topo é 'alturaPilar'. Pega os vértices mais altos.
+                if (y > alturaPilar - 0.05) {
+                    pos.setY(i, y - (Math.random() * 0.12)); // Amassa randômicamente até 12cm
+                }
+            }
+            pos.needsUpdate = true;
+            pilar.geometry.computeVertexNormals(); // Recalcula a luz para os novos "buracos"
+        }
+
+        gerarPilar(); // Chama na inicialização (Liso)
 
         // Detritos
         const particulas = [];
@@ -412,7 +438,7 @@
             flechaMaxima = Math.max(1, Math.min(100, parseFloat(inFlecha.value)));
             maxGraficoY = cargaMaxima * 1.2;
 
-            gerarPilar(); // Recria com o topo quebrado e novas dimensões
+            gerarPilar(); // Recria com as novas dimensões (Liso novamente)
 
             posPrensaContato = posPilarBase + alturaPilar + 0.15; 
             posPrensaDescanso = posPrensaContato + vaoInicial;
@@ -424,7 +450,6 @@
 
         // --- LÓGICA DE UI E GRÁFICO ---
         function resizeCanvas() { 
-            // Garante que o canvas do gráfico pegue o tamanho do pai corretamente no resize
             const container = canvasGraph.parentElement;
             canvasGraph.width = container.clientWidth - 30; 
             canvasGraph.height = 180; 
@@ -463,7 +488,7 @@
         btnReset.addEventListener('click', () => {
             estado = 'PARADO'; frameGrafico = 0; dadosCarga.length = 0;
             
-            pilar.scale.set(1, 1, 1);
+            gerarPilar(); // Restaura a geometria perfeitamente lisa
             conjuntoMovelSuperior.position.y = posPrensaDescanso;
             
             ctxRomp.drawImage(canvasConcreto, 0, 0);
@@ -529,9 +554,12 @@
                     conjuntoMovelSuperior.position.y = posPrensaContato - descidaVisual;
                     pilar.scale.y = 1 - (descidaVisual / alturaPilar);
 
+                    // O MOMENTO EXATO DA RUPTURA
                     if(frameGrafico >= framePico) {
                         estado = 'ROMPENDO';
                         updateStatus('RUPTURA ESTRUTURAL!', true);
+                        
+                        deformarTopoPilar(); // Amassa a geometria 3D agora!
                         
                         particulas.forEach(p => {
                             p.ativo = true; p.mesh.visible = true;
