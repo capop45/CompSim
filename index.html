@@ -3,599 +3,419 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Ensaio de Compressão - Paramétrico</title>
+    <title>FORM-TEST Alpha 10-2000-S - Ensaio de Compressão (Cena Técnica Completa)</title>
     <style>
-        :root {
-            --bg-color: #f4f4f9;
-            --text-color: #333333;
-            --panel-bg: rgba(255, 255, 255, 0.9);
-            --border-color: #dddddd;
-            --accent-color: #0055aa;
-        }
-
-        body.dark-mode {
-            --bg-color: #121212;
-            --text-color: #e0e0e0;
-            --panel-bg: rgba(30, 30, 30, 0.9);
-            --border-color: #444444;
-            --accent-color: #4da6ff;
-        }
-
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            background-color: var(--bg-color); 
-            color: var(--text-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #050505; }
         canvas { display: block; }
-
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-
-        .panel {
-            pointer-events: auto;
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            backdrop-filter: blur(5px);
-            transition: all 0.3s;
-        }
-
-        /* Dashboard Direita */
-        #dashboard { position: absolute; top: 20px; right: 20px; width: 320px; padding: 15px; user-select: none; }
-        .metric-card { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
-        .metric-label { font-size: 12px; opacity: 0.8; text-transform: uppercase; }
-        .metric-value { font-size: 18px; font-weight: bold; color: var(--accent-color); }
-        #graph-container { width: 100%; height: 150px; background: transparent; margin-top: 10px; }
-
-        /* Painel Esquerda (Parâmetros) */
-        #settings-panel { position: absolute; top: 70px; left: 20px; width: 280px; padding: 15px; }
-        .input-group { margin-bottom: 12px; }
-        .input-group label { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 5px; }
-        .input-group input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--accent-color); }
-        .input-group input[type="number"] { width: 100%; padding: 6px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 4px; background: transparent; color: var(--text-color); font-weight: bold; }
-
-        #controls-bottom { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; pointer-events: auto; }
-        #top-left-controls { position: absolute; top: 20px; left: 20px; pointer-events: auto; }
-
-        button {
-            padding: 12px 25px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            background: var(--panel-bg);
-            color: var(--text-color);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: all 0.2s;
-            text-transform: uppercase;
-        }
-
-        button:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
-        button:active:not(:disabled) { transform: translateY(0); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        
-        #btn-play { background: var(--accent-color); color: white; border: none; }
-        #btn-play.paused { background: #28a745; }
-        #btn-aplicar { background: #666; color: white; border: none; width: 100%; margin-top: 10px; }
-        
-        #status-ensaio {
-            position: absolute; top: -40px; left: 0; width: 100%; text-align: center; font-weight: bold;
-            color: #d9534f; font-size: 16px; opacity: 0; transition: opacity 0.3s;
-            text-transform: uppercase; background: rgba(255,255,255,0.8); border-radius: 4px;
-        }
-        body.dark-mode #status-ensaio { background: rgba(0,0,0,0.8); }
     </style>
 </head>
 <body>
+    <div id="container"></div>
 
-    <div id="ui-layer">
-        <div id="top-left-controls"><button id="btn-theme">Alternar Tema</button></div>
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/RGBELoader.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/SSAOPass.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/ToneMappingPass.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/shaders/SSAOShader.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/shaders/ToneMappingShader.js"></script>
 
-        <div id="settings-panel" class="panel">
-            <div style="font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid var(--accent-color); padding-bottom: 5px;">
-                Propriedades do Corpo de Prova
-            </div>
-            
-            <div class="input-group">
-                <label>Largura (m): <span id="out-larg">0.20</span></label>
-                <input type="range" id="in-larg" min="0.10" max="0.40" step="0.05" value="0.20">
-            </div>
-            <div class="input-group">
-                <label>Altura (m): <span id="out-alt">2.50</span></label>
-                <input type="range" id="in-alt" min="1.00" max="3.50" step="0.10" value="2.50">
-            </div>
-            <div class="input-group">
-                <label>Profundidade (m): <span id="out-prof">0.20</span></label>
-                <input type="range" id="in-prof" min="0.10" max="0.40" step="0.05" value="0.20">
-            </div>
-            
-            <div style="font-weight: bold; margin: 20px 0 10px 0; border-bottom: 2px solid var(--accent-color); padding-bottom: 5px;">
-                Limites Estruturais
-            </div>
-            <div class="input-group">
-                <label>Carga Máxima (kN):</label>
-                <input type="number" id="in-carga" value="373.44" min="10" max="2000" step="10">
-            </div>
-            <div class="input-group">
-                <label>Flecha Máxima (mm):</label>
-                <input type="number" id="in-flecha" value="17.36" min="1" max="100" step="1">
-            </div>
-            
-            <button id="btn-aplicar">Aplicar Alterações</button>
-        </div>
-
-        <div id="dashboard" class="panel">
-            <div id="status-ensaio">Status Aqui</div>
-            <div style="font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid var(--accent-color); padding-bottom: 5px;">
-                Mecânica da Fratura
-            </div>
-            
-            <div class="metric-card"><span class="metric-label">Carga Atual (P)</span><span id="val-carga" class="metric-value">0.00 kN</span></div>
-            <div class="metric-card"><span class="metric-label">Deslocamento</span><span id="val-desloc" class="metric-value">0.00 mm</span></div>
-            <div class="metric-card" style="color: #d9534f; border-bottom: none;"><span class="metric-label" style="color: #d9534f;">Carga Máx</span><span id="val-carga-max" class="metric-value" style="color: #d9534f;">373.44 kN</span></div>
-
-            <canvas id="graph-canvas"></canvas>
-        </div>
-
-        <div id="controls-bottom">
-            <button id="btn-play">INICIAR ENSAIO</button>
-            <button id="btn-reset">RESET</button>
-        </div>
-    </div>
-
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    <script>
+        // --- GERAÇÃO DE TEXTURAS E GRÁFICOS PROCEDURAIS (sem arquivos externos) ---
+        class ProceduralTextures {
+            static concrete() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 1024; canvas.height = 1024;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#b0b0b0'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                for (let i = 0; i < 50000; i++) {
+                    const x = Math.random() * canvas.width; const y = Math.random() * canvas.height;
+                    const r = Math.random() * 2; const gray = 140 + Math.random() * 40;
+                    ctx.fillStyle = `rgb(${gray},${gray},${gray})`; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+                }
+                for (let i = 0; i < 5000; i++) {
+                    const x = Math.random() * canvas.width; const y = Math.random() * canvas.height;
+                    const r = 1 + Math.random() * 3; ctx.fillStyle = 'rgb(100,100,100)'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+                }
+                return new THREE.CanvasTexture(canvas);
             }
-        }
-    </script>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-
-        // --- REFERÊNCIAS DO DOM ---
-        const btnTheme = document.getElementById('btn-theme');
-        const btnPlay = document.getElementById('btn-play');
-        const btnReset = document.getElementById('btn-reset');
-        const btnAplicar = document.getElementById('btn-aplicar');
-        
-        const inLarg = document.getElementById('in-larg');
-        const inAlt = document.getElementById('in-alt');
-        const inProf = document.getElementById('in-prof');
-        const inCarga = document.getElementById('in-carga');
-        const inFlecha = document.getElementById('in-flecha');
-        
-        const outLarg = document.getElementById('out-larg');
-        const outAlt = document.getElementById('out-alt');
-        const outProf = document.getElementById('out-prof');
-        const valCargaMax = document.getElementById('val-carga-max');
-
-        const valCarga = document.getElementById('val-carga');
-        const valDesloc = document.getElementById('val-desloc');
-        const canvasGraph = document.getElementById('graph-canvas');
-        const ctx = canvasGraph.getContext('2d');
-        const statusEnsaio = document.getElementById('status-ensaio');
-
-        // --- VARIÁVEIS DE SIMULAÇÃO (AGORA DINÂMICAS) ---
-        let larguraPilar = 0.20;
-        let alturaPilar = 2.50;
-        let profundidadePilar = 0.20;
-        let cargaMaxima = 373.44;
-        let flechaMaxima = 17.36;
-        let maxGraficoY = cargaMaxima * 1.2; // 20% de folga no eixo Y do gráfico
-
-        const posPilarBase = 0.6;
-        const vaoInicial = 0.3;
-        let posPrensaContato = posPilarBase + alturaPilar + 0.15; 
-        let posPrensaDescanso = posPrensaContato + vaoInicial;
-        const maxDeslocamentoY = 0.05; 
-        
-        let estado = 'PARADO'; 
-        let frameGrafico = 0; 
-        const framePico = 150; 
-        const duracaoRompimento = 60; 
-        const dadosCarga = [];
-        let isDarkMode = localStorage.getItem('theme') === 'dark';
-
-        // --- CONFIGURAÇÃO THREE.JS ---
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(4, 3, 6);
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        document.body.appendChild(renderer.domElement);
-
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.target.set(0, 1.5, 0);
-        controls.update();
-
-        // --- GERENCIAMENTO DE TEMA E EVENTOS UI ---
-        function applyTheme(dark) {
-            if (dark) {
-                document.body.classList.add('dark-mode');
-                localStorage.setItem('theme', 'dark');
-                if(scene) scene.background = new THREE.Color(0x1a1a1a);
-            } else {
-                document.body.classList.remove('dark-mode');
-                localStorage.setItem('theme', 'light');
-                if(scene) scene.background = new THREE.Color(0xf4f4f9);
+            static concreteBroken() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 1024; canvas.height = 1024;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                for (let i = 0; i < 5000; i++) {
+                    const x = Math.random() * canvas.width; const y = Math.random() * canvas.height;
+                    const r = 2 + Math.random() * 8; const gray = 60 + Math.random() * 40;
+                    ctx.fillStyle = `rgb(${gray},${gray},${gray})`; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+                }
+                for (let i = 0; i < 1000; i++) {
+                    const x = Math.random() * canvas.width; const y = Math.random() * canvas.height;
+                    const r = 5 + Math.random() * 15; ctx.fillStyle = 'rgb(40,40,40)'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+                }
+                return new THREE.CanvasTexture(canvas);
             }
-            isDarkMode = dark;
-            desenharGrafico();
-        }
-        btnTheme.addEventListener('click', () => applyTheme(!isDarkMode));
 
-        // Sincroniza os sliders com os textos em tempo real
-        inLarg.addEventListener('input', e => outLarg.innerText = parseFloat(e.target.value).toFixed(2));
-        inAlt.addEventListener('input', e => outAlt.innerText = parseFloat(e.target.value).toFixed(2));
-        inProf.addEventListener('input', e => outProf.innerText = parseFloat(e.target.value).toFixed(2));
-
-        // --- ILUMINAÇÃO ---
-        const pmremGenerator = new THREE.PMREMGenerator(renderer);
-        scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
-        const luzDirecional = new THREE.DirectionalLight(0xffffff, 2);
-        luzDirecional.position.set(5, 10, 5);
-        luzDirecional.castShadow = true;
-        luzDirecional.shadow.mapSize.width = 2048;
-        luzDirecional.shadow.mapSize.height = 2048;
-        scene.add(luzDirecional);
-        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-
-        // --- TEXTURAS PROCEDURAIS ---
-        const canvasConcreto = document.createElement('canvas');
-        canvasConcreto.width = 512; canvasConcreto.height = 512;
-        const ctxConc = canvasConcreto.getContext('2d');
-        for(let i=0; i<512; i+=25) {
-            for(let j=0; j<512; j+=2) {
-                const val = 130 + Math.floor(Math.random() * 40);
-                ctxConc.fillStyle = `rgb(${val},${val},${val})`;
-                ctxConc.fillRect(i, j, 25, 2);
+            static brushedMetal() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512; canvas.height = 512;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#e0e0e0'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = '#c0c0c0'; ctx.lineWidth = 1;
+                for (let i = 0; i < 2000; i++) {
+                    const y = Math.random() * canvas.height;
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y + (Math.random() - 0.5) * 5); ctx.stroke();
+                }
+                return new THREE.CanvasTexture(canvas);
             }
-        }
-        
-        const canvasRompido = document.createElement('canvas');
-        canvasRompido.width = 512; canvasRompido.height = 512;
-        const ctxRomp = canvasRompido.getContext('2d');
-        ctxRomp.drawImage(canvasConcreto, 0, 0);
-        const texConcretoDinâmico = new THREE.CanvasTexture(canvasRompido);
 
-        const caminhosRachadura = [];
-        for(let k=0; k<30; k++) { 
-            let caminho = [];
-            let x = Math.random() * 512;
-            let y = Math.random() * 50; 
-            caminho.push({x, y});
-            for(let step=0; step<4 + Math.random() * 6; step++) {
-                x += (Math.random() - 0.5) * 40;
-                y += Math.random() * 15 + 5; 
-                caminho.push({x, y});
-            }
-            caminhosRachadura.push(caminho);
-        }
+            static digitalPanel(width = 1024, height = 1024) {
+                const canvas = document.createElement('canvas');
+                canvas.width = width; canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                const metalTex = ProceduralTextures.brushedMetal();
+                ctx.drawImage(metalTex.image, 0, 0, width, height);
 
-        const canvasMetal = document.createElement('canvas');
-        canvasMetal.width = 512; canvasMetal.height = 512;
-        const ctxMetal = canvasMetal.getContext('2d');
-        ctxMetal.fillStyle = '#808080'; ctxMetal.fillRect(0,0,512,512);
-        for(let i=0; i<2000; i++) {
-            ctxMetal.fillStyle = `rgba(255,255,255,${Math.random()*0.15})`;
-            ctxMetal.fillRect(0, Math.random()*512, 512, Math.random()*2);
-            ctxMetal.fillStyle = `rgba(0,0,0,${Math.random()*0.15})`;
-            ctxMetal.fillRect(0, Math.random()*512, 512, Math.random()*2);
-        }
-        const texMetal = new THREE.CanvasTexture(canvasMetal);
+                // Textos estáticos
+                ctx.fillStyle = '#333'; ctx.font = 'bold 36px Segoe UI, Tahoma, Geneva, Verdana, sans-serif';
+                ctx.fillText('Carga Máx (P_max) = 373.44 kN', 50, 100);
+                ctx.fillText('Flecha Lateral = 17.36 mm', 50, 160);
+                ctx.fillText('Mecanica da Fratura (Curvas Globalizadas)', 50, 260);
+                ctx.fillText('Resultados Globais da Simulacao', 50, 310);
 
-        // --- MATERIAIS ---
-        const matEstrutura = new THREE.MeshPhysicalMaterial({ color: 0xe0e0e0, roughness: 0.4, clearcoat: 0.6 });
-        const matCromoRanhurado = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 1.0, roughness: 0.3, bumpMap: texMetal, bumpScale: 0.003 });
-        const matCromoLiso = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 1.0, roughness: 0.1 });
-        const matPratoVerde = new THREE.MeshPhysicalMaterial({ color: 0x007a4d, metalness: 0.5, roughness: 0.4, bumpMap: texMetal, bumpScale: 0.001 });
-        const matPilar = new THREE.MeshStandardMaterial({ color: 0x959595, roughness: 1.0, map: texConcretoDinâmico, bumpMap: texConcretoDinâmico, bumpScale: 0.02 });
-
-        // --- MODELAGEM DA MÁQUINA ---
-        const maquina = new THREE.Group();
-        scene.add(maquina);
-
-        const base = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.4, 1.2), matEstrutura);
-        base.position.y = 0.2; base.receiveShadow = true; base.castShadow = true; maquina.add(base);
-        
-        const pratoInf = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.2, 0.8), matPratoVerde);
-        pratoInf.position.y = 0.5; pratoInf.castShadow = true; pratoInf.receiveShadow = true; maquina.add(pratoInf);
-
-        const topo = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.4, 1.2), matEstrutura);
-        topo.position.y = 4.2; topo.receiveShadow = true; topo.castShadow = true; maquina.add(topo);
-        
-        const posColunas = [[-0.75, 0.45], [0.75, 0.45], [-0.75, -0.45], [0.75, -0.45]];
-        posColunas.forEach(pos => {
-            const coluna = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.4, 64), matCromoLiso);
-            coluna.position.set(pos[0], 2.2, pos[1]); coluna.castShadow = true; coluna.receiveShadow = true; maquina.add(coluna);
-        });
-
-        const conjuntoMovelSuperior = new THREE.Group();
-        const cilindroHidraulico = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 1.0, 64), matCromoRanhurado);
-        cilindroHidraulico.position.y = 0.5; cilindroHidraulico.castShadow = true; conjuntoMovelSuperior.add(cilindroHidraulico);
-        
-        const pratoSup = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.15, 0.8), matPratoVerde);
-        pratoSup.position.y = -0.075; pratoSup.castShadow = true; pratoSup.receiveShadow = true; conjuntoMovelSuperior.add(pratoSup);
-        conjuntoMovelSuperior.position.y = posPrensaDescanso;
-        maquina.add(conjuntoMovelSuperior);
-
-        // O Pilar (Inicial)
-        let pilar = new THREE.Mesh(new THREE.BoxGeometry(larguraPilar, alturaPilar, profundidadePilar), matPilar);
-        pilar.geometry.translate(0, alturaPilar / 2, 0); 
-        pilar.castShadow = true; pilar.receiveShadow = true;
-        pilar.position.y = posPilarBase; 
-        scene.add(pilar);
-
-        const particulas = [];
-        const detritoGeo = new THREE.BoxGeometry(0.03, 0.03, 0.03);
-        for(let i=0; i<45; i++) {
-            const p = new THREE.Mesh(detritoGeo, matPilar);
-            p.castShadow = true; p.visible = false; scene.add(p);
-            particulas.push({ mesh: p, vx: 0, vy: 0, vz: 0, ativo: false });
-        }
-
-        const chao = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ opacity: 0.3 }));
-        chao.rotation.x = -Math.PI / 2; chao.receiveShadow = true; scene.add(chao);
-
-
-        // --- LÓGICA DE APLICAÇÃO DE PARÂMETROS ---
-        btnAplicar.addEventListener('click', () => {
-            // 1. Coleta e Validação (Clamping) dos dados
-            larguraPilar = Math.max(0.1, Math.min(0.4, parseFloat(inLarg.value)));
-            alturaPilar = Math.max(1.0, Math.min(3.5, parseFloat(inAlt.value)));
-            profundidadePilar = Math.max(0.1, Math.min(0.4, parseFloat(inProf.value)));
-            
-            cargaMaxima = Math.max(10, Math.min(2000, parseFloat(inCarga.value)));
-            flechaMaxima = Math.max(1, Math.min(100, parseFloat(inFlecha.value)));
-            maxGraficoY = cargaMaxima * 1.2;
-
-            // 2. Atualiza a Geometria do Pilar
-            scene.remove(pilar);
-            pilar.geometry.dispose(); // Limpa a memória da geometria velha
-            
-            const novaGeo = new THREE.BoxGeometry(larguraPilar, alturaPilar, profundidadePilar);
-            novaGeo.translate(0, alturaPilar / 2, 0);
-            pilar = new THREE.Mesh(novaGeo, matPilar);
-            pilar.castShadow = true; pilar.receiveShadow = true;
-            pilar.position.y = posPilarBase;
-            scene.add(pilar);
-
-            // 3. Recalcula as restrições da máquina
-            posPrensaContato = posPilarBase + alturaPilar + 0.15; 
-            posPrensaDescanso = posPrensaContato + vaoInicial;
-            conjuntoMovelSuperior.position.y = posPrensaDescanso;
-
-            // 4. Atualiza os textos da UI
-            valCargaMax.innerText = `${cargaMaxima.toFixed(2)} kN`;
-            btnReset.click(); // Reseta qualquer ensaio em andamento para aplicar de forma limpa
-        });
-
-        // --- LÓGICA DE UI E GRÁFICO ---
-        function resizeCanvas() { canvasGraph.width = canvasGraph.parentElement.clientWidth - 30; canvasGraph.height = 150; desenharGrafico(); }
-        window.addEventListener('resize', resizeCanvas); setTimeout(resizeCanvas, 100);
-
-        function updateStatus(texto, mostrar = true) {
-            statusEnsaio.innerText = texto;
-            statusEnsaio.style.opacity = mostrar ? '1' : '0';
-        }
-
-        btnPlay.addEventListener('click', () => {
-            if(estado === 'PARADO') estado = 'APROXIMANDO';
-            else if(estado === 'APROXIMANDO' || estado === 'COMPRIMINDO' || estado === 'ROMPENDO') estado = 'PAUSADO';
-            else if(estado === 'PAUSADO') {
-                if(conjuntoMovelSuperior.position.y > posPrensaContato) estado = 'APROXIMANDO';
-                else if(frameGrafico < framePico) estado = 'COMPRIMINDO';
-                else estado = 'RETORNANDO';
-            }
-            
-            const rodando = (estado !== 'PARADO' && estado !== 'PAUSADO' && estado !== 'RETORNANDO');
-            btnPlay.innerText = rodando ? "PAUSAR" : "RETOMAR";
-            btnPlay.className = rodando ? "paused" : "";
-            
-            // Bloqueia a edição de parâmetros durante o ensaio
-            btnAplicar.disabled = (estado !== 'PARADO');
-            Array.from(document.querySelectorAll('#settings-panel input')).forEach(inp => inp.disabled = (estado !== 'PARADO'));
-        });
-
-        btnReset.addEventListener('click', () => {
-            estado = 'PARADO'; 
-            frameGrafico = 0; 
-            dadosCarga.length = 0;
-            
-            pilar.scale.set(1, 1, 1);
-            conjuntoMovelSuperior.position.y = posPrensaDescanso;
-            
-            ctxRomp.drawImage(canvasConcreto, 0, 0);
-            texConcretoDinâmico.needsUpdate = true;
-
-            particulas.forEach(p => { p.ativo = false; p.mesh.visible = false; });
-            
-            updateStatus('', false);
-            btnPlay.innerText = "INICIAR ENSAIO"; btnPlay.className = "";
-            
-            // Libera edição
-            btnAplicar.disabled = false;
-            Array.from(document.querySelectorAll('#settings-panel input')).forEach(inp => inp.disabled = false);
-
-            desenharGrafico();
-            valCarga.innerText = `0.00 kN`; valDesloc.innerText = `0.00 mm`;
-        });
-
-        function desenharGrafico() {
-            if(!ctx) return;
-            ctx.clearRect(0, 0, canvasGraph.width, canvasGraph.height);
-            ctx.strokeStyle = isDarkMode ? '#666666' : '#cccccc'; ctx.lineWidth = 1; ctx.beginPath();
-            ctx.moveTo(30, 10); ctx.lineTo(30, 130); ctx.lineTo(canvasGraph.width - 10, 130); ctx.stroke();
-
-            if(dadosCarga.length < 2) return;
-            ctx.strokeStyle = isDarkMode ? '#4da6ff' : '#0055aa'; ctx.lineWidth = 2; ctx.beginPath();
-            const w = canvasGraph.width - 40;
-            for(let i=0; i<dadosCarga.length; i++) {
-                const x = 30 + (i / 250) * w; 
-                // Usa maxGraficoY (dinâmico) no lugar dos 400 estáticos
-                const y = 130 - (dadosCarga[i] / maxGraficoY) * 110;
-                if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-        }
-
-        applyTheme(isDarkMode); 
-
-        // --- LOOP PRINCIPAL DE ANIMAÇÃO ---
-        function animate() {
-            requestAnimationFrame(animate);
-
-            if (estado === 'APROXIMANDO') {
-                updateStatus('Aproximando Prensa...', true);
-                conjuntoMovelSuperior.position.y -= 0.005; 
+                // Gráfico 1: Carga vs. Deslocamento
+                ProceduralTextures.drawGraph1(ctx, 50, 360, 430, 400);
                 
-                if (conjuntoMovelSuperior.position.y <= posPrensaContato) {
-                    conjuntoMovelSuperior.position.y = posPrensaContato;
-                    estado = 'COMPRIMINDO';
-                    updateStatus('Aplicando Carga...', true);
+                // Gráfico 2: Carga vs. Deformação Axial
+                ProceduralTextures.drawGraph2(ctx, 520, 360, 430, 400);
+
+                // Barra de status e botões
+                ctx.fillStyle = '#ccc'; ctx.fillRect(0, 850, 1024, 174);
+                ctx.fillStyle = '#333'; ctx.font = '30px Segoe UI';
+                ctx.fillText('Status: Teste Completo - Ruptura Atingida', 300, 910);
+                
+                ProceduralTextures.drawButton(ctx, 'Play / Pause', 100, 950, 300, 60);
+                ProceduralTextures.drawButton(ctx, 'Reset', 624, 950, 300, 60);
+
+                return new THREE.CanvasTexture(canvas);
+            }
+
+            static drawButton(ctx, text, x, y, w, h) {
+                ctx.fillStyle = '#aaa'; ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
+                ctx.fillRect(x, y, w, h); ctx.strokeRect(x, y, w, h);
+                ctx.fillStyle = '#333'; ctx.font = 'bold 28px Segoe UI';
+                ctx.textAlign = 'center'; ctx.fillText(text, x + w / 2, y + h / 2 + 10); ctx.textAlign = 'left';
+            }
+
+            static drawGraph1(ctx, x, y, w, h) {
+                // Eixos e Rótulos
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.strokeRect(x, y, w, h);
+                ctx.fillStyle = '#000'; ctx.font = '22px Segoe UI';
+                ctx.fillText('Carga Aplicada (kN)', x + 10, y + 30);
+                ctx.fillText('Deslocamento (mm)', x + w - 180, y + h - 10);
+                ctx.fillText('P_max', x + 300, y + 60);
+
+                // Curvas
+                ctx.lineWidth = 3;
+                // Esmagamento (Axial) - Azul
+                ctx.strokeStyle = '#00f'; ctx.beginPath(); ctx.moveTo(x + 10, y + h - 10);
+                // Dados simplificados para a curva
+                ctx.lineTo(x + 40, y + h - 180); ctx.lineTo(x + 70, y + h - 350); ctx.lineTo(x + 90, y + h - 373); // Ponto de pico
+                ctx.lineTo(x + 110, y + h - 350); ctx.lineTo(x + 140, y + h - 180); ctx.lineTo(x + 170, y + h - 100); ctx.lineTo(x + 400, y + h - 10);
+                ctx.stroke();
+
+                // Flecha (Lateral) - Laranja
+                ctx.strokeStyle = '#f80'; ctx.beginPath(); ctx.moveTo(x + 10, y + h - 10);
+                ctx.lineTo(x + 100, y + h - 100); ctx.lineTo(x + 200, y + h - 250); ctx.lineTo(x + 300, y + h - 370);
+                ctx.lineTo(x + 350, y + h - 373); ctx.lineTo(x + 400, y + h - 360); ctx.stroke();
+
+                // Estrelas
+                ctx.font = 'bold 36px Segoe UI'; ctx.textAlign = 'center';
+                ctx.fillStyle = '#00f'; ctx.fillText('★', x + 90, y + h - 373 + 10);
+                ctx.fillStyle = '#f80'; ctx.fillText('★', x + 350, y + h - 373 + 10);
+                ctx.textAlign = 'left';
+
+                // Legenda
+                ctx.fillStyle = '#000'; ctx.font = '20px Segoe UI';
+                ProceduralTextures.drawLegendLine(ctx, x + 330, y + 330, '#00f', 'Esmagamento (Axial)');
+                ProceduralTextures.drawLegendLine(ctx, x + 330, y + 360, '#f80', 'Flecha (Lateral)');
+            }
+
+            static drawGraph2(ctx, x, y, w, h) {
+                // Eixos e Rótulos
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.strokeRect(x, y, w, h);
+                ctx.fillStyle = '#000'; ctx.font = '22px Segoe UI';
+                ctx.fillText('Carga Aplicada (kN)', x + 10, y + 30);
+                ctx.fillText('Deformacao Axial (x10⁻⁶)', x + w - 230, y + h - 10);
+
+                // Curva - Vermelho
+                ctx.lineWidth = 3; ctx.strokeStyle = '#f00'; ctx.beginPath(); ctx.moveTo(x + 10, y + h - 10);
+                ctx.lineTo(x + 20, y + h - 150); ctx.lineTo(x + 30, y + h - 350); ctx.lineTo(x + 40, y + h - 373); // Ponto de pico
+                ctx.lineTo(x + 50, y + h - 350); ctx.lineTo(x + 60, y + h - 150); ctx.lineTo(x + 70, y + h - 80); ctx.lineTo(x + 100, y + h - 30);
+                ctx.lineTo(x + 200, y + h - 20); ctx.lineTo(x + 400, y + h - 15); ctx.stroke();
+            }
+
+            static drawLegendLine(ctx, x, y, color, text) {
+                ctx.fillStyle = color; ctx.fillRect(x, y - 10, 20, 3);
+                ctx.fillStyle = '#333'; ctx.fillText(text, x + 25, y);
+            }
+        }
+
+        // --- MÁQUINA DE ENSAIO DE COMPRESSÃO (Polígonos Complexos Procedurais) ---
+        class MachineComponents {
+            static base() {
+                const group = new THREE.Group();
+                // Base principal
+                const baseGeometry = new THREE.BoxGeometry(2, 0.4, 1.4);
+                const baseMaterial = new THREE.MeshPhysicalMaterial({ color: 0xcccccc, metalness: 0.1, roughness: 0.7 });
+                const baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
+                baseMesh.position.y = 0.2; baseMesh.castShadow = true; baseMesh.receiveShadow = true; group.add(baseMesh);
+
+                // Colunas cromadas (4x)
+                const columnGeometry = new THREE.CylinderGeometry(0.12, 0.12, 3.8, 64);
+                const columnMaterial = new THREE.MeshPhysicalMaterial({
+                    color: 0xffffff, metalness: 1, roughness: 0.05, envMapIntensity: 1,
+                    clearcoat: 1, clearcoatRoughness: 0.1
+                });
+                for (let i = 0; i < 4; i++) {
+                    const col = new THREE.Mesh(columnGeometry, columnMaterial);
+                    col.position.set(i < 2 ? -0.7 : 0.7, 1.9, i % 2 === 0 ? -0.4 : 0.4);
+                    col.castShadow = true; group.add(col);
                 }
 
-            } else if (estado === 'COMPRIMINDO' || estado === 'ROMPENDO' || estado === 'RETORNANDO') {
-                
-                let cargaAtual = 0;
-                let flechaAtual = 0;
-
-                if (estado === 'COMPRIMINDO') {
-                    frameGrafico++;
-                    const progresso = frameGrafico / framePico;
-                    
-                    cargaAtual = Math.sin(progresso * Math.PI / 2) * cargaMaxima; 
-                    flechaAtual = progresso * (flechaMaxima * 0.15); // Acomodação inicial proporcional
-                    
-                    const descidaVisual = progresso * maxDeslocamentoY;
-                    conjuntoMovelSuperior.position.y = posPrensaContato - descidaVisual;
-                    pilar.scale.y = 1 - (descidaVisual / alturaPilar);
-
-                    if(frameGrafico >= framePico) {
-                        estado = 'ROMPENDO';
-                        updateStatus('RUPTURA ESTRUTURAL!', true);
-                        
-                        particulas.forEach(p => {
-                            p.ativo = true;
-                            p.mesh.visible = true;
-                            p.mesh.position.set(
-                                (Math.random() - 0.5) * larguraPilar, 
-                                posPilarBase + alturaPilar - (Math.random() * 0.3),
-                                (Math.random() - 0.5) * profundidadePilar
-                            );
-                            p.vx = (Math.random() - 0.5) * 0.04;
-                            p.vy = (Math.random() * 0.02) + 0.005;
-                            p.vz = (Math.random() - 0.5) * 0.04;
-                        });
-                    }
-
-                } else if (estado === 'ROMPENDO') {
-                    frameGrafico++;
-                    
-                    const framesPosRuptura = frameGrafico - framePico;
-                    cargaAtual = cargaMaxima * Math.exp(-framesPosRuptura * 0.15);
-                    flechaAtual = flechaMaxima; // Atinge a deformação configurada
-
-                    if (framesPosRuptura < duracaoRompimento) {
-                        const progressoRachadura = framesPosRuptura / duracaoRompimento;
-                        ctxRomp.drawImage(canvasConcreto, 0, 0); 
-                        ctxRomp.lineWidth = 4;
-                        ctxRomp.strokeStyle = '#1a1a1a';
-                        
-                        caminhosRachadura.forEach(caminho => {
-                            ctxRomp.beginPath();
-                            ctxRomp.moveTo(caminho[0].x, caminho[0].y);
-                            let limite = Math.floor(progressoRachadura * caminho.length);
-                            for(let i=1; i<=limite; i++) {
-                                if(i < caminho.length) ctxRomp.lineTo(caminho[i].x, caminho[i].y);
-                            }
-                            ctxRomp.stroke();
-                        });
-                        texConcretoDinâmico.needsUpdate = true; 
-                    }
-
-                    if (framesPosRuptura > duracaoRompimento + 40) {
-                        estado = 'RETORNANDO';
-                        updateStatus('Retraindo Máquina...', true);
-                    }
-
-                } else if (estado === 'RETORNANDO') {
-                    cargaAtual = 0;
-                    flechaAtual = flechaMaxima;
-                    
-                    conjuntoMovelSuperior.position.y += 0.01;
-                    if (conjuntoMovelSuperior.position.y >= posPrensaDescanso) {
-                        conjuntoMovelSuperior.position.y = posPrensaDescanso;
-                        estado = 'PARADO';
-                        updateStatus('Ensaio Finalizado', true);
-                        btnPlay.innerText = "ENSAIO CONCLUÍDO";
-                        btnPlay.className = "";
-                    }
+                // Tubulação hidráulica
+                const pipeGeometry = new THREE.CylinderGeometry(0.015, 0.015, 1.8, 16);
+                const pipeMaterial = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 1, roughness: 0.1 });
+                for (let i = 0; i < 2; i++) {
+                    const pipe = new THREE.Mesh(pipeGeometry, pipeMaterial);
+                    pipe.position.set(i % 2 === 0 ? -0.8 : 0.8, 0.2, 0.6);
+                    pipe.rotation.z = Math.PI / 2; group.add(pipe);
                 }
 
-                particulas.forEach(p => {
-                    if(p.ativo) {
-                        p.vy -= 0.002;
-                        p.mesh.position.x += p.vx;
-                        p.mesh.position.y += p.vy;
-                        p.mesh.position.z += p.vz;
-                        p.mesh.rotation.x += 0.1;
-                        p.mesh.rotation.y += 0.1;
-                        
-                        let stopY = 0.02; 
-                        if (Math.abs(p.mesh.position.x) < 0.4 && Math.abs(p.mesh.position.z) < 0.4) {
-                            stopY = posPilarBase + 0.02;
-                        } else if (Math.abs(p.mesh.position.x) < 0.9 && Math.abs(p.mesh.position.z) < 0.6) {
-                            stopY = 0.4 + 0.02; 
-                        }
+                return group;
+            }
 
-                        if(p.mesh.position.y <= stopY) {
-                            p.mesh.position.y = stopY;
-                            p.vy *= -0.3; p.vx *= 0.8; p.vz *= 0.8;
-                            if(Math.abs(p.vy) < 0.005) {
-                                p.vy = 0; p.vx = 0; p.vz = 0; 
-                            }
-                        }
-                    }
+            static upperCrosshead() {
+                const group = new THREE.Group();
+                const crossheadGeometry = new THREE.BoxGeometry(2, 0.5, 1.4);
+                const crossheadMaterial = new THREE.MeshPhysicalMaterial({ color: 0xcccccc, metalness: 0.1, roughness: 0.7 });
+                const crossheadMesh = new THREE.Mesh(crossheadGeometry, crossheadMaterial);
+                crossheadMesh.castShadow = true; crossheadMesh.receiveShadow = true; group.add(crossheadMesh);
+
+                // Prensa Superior (Preto/Verde)
+                const platenMaterial = new THREE.MeshPhysicalMaterial({ color: 0x050505, metalness: 0.5, roughness: 0.5 });
+                const platenTopMaterial = new THREE.MeshPhysicalMaterial({ color: 0x0a3d2e, metalness: 0.1, roughness: 0.7 });
+                
+                const platenTopGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.05, 64);
+                const platenTop = new THREE.Mesh(platenTopGeometry, platenTopMaterial);
+                platenTop.position.y = -0.275; group.add(platenTop);
+
+                const platenGeometry = new THREE.CylinderGeometry(0.28, 0.28, 0.1, 64);
+                const platen = new THREE.Mesh(platenGeometry, platenMaterial);
+                platen.position.y = -0.35; group.add(platen);
+
+                // Logotipo FORM-TEST (simplificado)
+                const logoGeometry = new THREE.PlaneGeometry(0.4, 0.2);
+                const logoMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+                const logo = new THREE.Mesh(logoGeometry, logoMaterial);
+                logo.position.set(0.6, 0.1, 0.71); group.add(logo);
+
+                // Painel da Máquina Circular
+                const circularPanelGeometry = new THREE.CylinderGeometry(0.18, 0.18, 0.01, 64);
+                const circularPanelMaterial = new THREE.MeshPhysicalMaterial({ color: 0xe0e0e0, metalness: 0.5, roughness: 0.3, bumpMap: ProceduralTextures.brushedMetal(), bumpScale: 0.005 });
+                const circularPanel = new THREE.Mesh(circularPanelGeometry, circularPanelMaterial);
+                circularPanel.position.set(-0.2, 0.1, 0.705); circularPanel.rotation.x = Math.PI / 2; group.add(circularPanel);
+
+                return group;
+            }
+
+            static baseFios() {
+                const group = new THREE.Group();
+                const baseFiosMaterial = new THREE.MeshPhysicalMaterial({ color: 0x0a3d2e, metalness: 0.1, roughness: 0.7 });
+                const baseFiosGeometry = new THREE.BoxGeometry(0.8, 0.08, 0.8);
+                const baseFios = new THREE.Mesh(baseFiosGeometry, baseFiosMaterial);
+                baseFios.position.y = 0.44; baseFios.castShadow = true; group.add(baseFios);
+
+                // Conectores dos fios
+                const connectorGeometry = new THREE.CylinderGeometry(0.01, 0.01, 0.03, 16);
+                const connectorMaterial = new THREE.MeshPhysicalMaterial({ color: 0xcccccc, metalness: 0.8, roughness: 0.3 });
+                for (let i = 0; i < 16; i++) {
+                    const conn = new THREE.Mesh(connectorGeometry, connectorMaterial);
+                    conn.position.set(-0.35 + (i % 8) * 0.1, 0.485, i < 8 ? -0.35 : 0.35); group.add(conn);
+                }
+
+                return group;
+            }
+        }
+
+        // --- CORPO DE PROVA DE CONCRETO (Texturas Procedurais Realistas) ---
+        class ConcreteSpecimen {
+            static create() {
+                const group = new THREE.Group();
+                const concreteMaterial = new THREE.MeshPhysicalMaterial({
+                    map: ProceduralTextures.concrete(),
+                    bumpMap: ProceduralTextures.concrete Broken(), bumpScale: 0.01,
+                    displacementMap: ProceduralTextures.concrete Broken(), displacementScale: 0.01,
+                    metalness: 0, roughness: 0.9, color: 0xd0d0d0
                 });
 
-                if(cargaAtual < 0.5) cargaAtual = 0;
+                // Bloco de concreto principal (quebrado)
+                const concreteGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.8, 64, 10, false, 0, Math.PI * 2);
+                const concrete = new THREE.Mesh(concreteGeometry, concreteMaterial);
+                concrete.position.y = 0.88; concrete.castShadow = true; concrete.receiveShadow = true; group.add(concrete);
 
-                valCarga.innerText = `${cargaAtual.toFixed(2)} kN`;
-                valDesloc.innerText = `${flechaAtual.toFixed(2)} mm`;
-                
-                if (estado !== 'RETORNANDO') { 
-                    dadosCarga.push(cargaAtual);
-                    if(frameGrafico % 2 === 0) desenharGrafico(); 
+                // Ruptura procedural - Geometry complexa
+                const brokenGeometry = new THREE.CylinderGeometry(0.18, 0.2, 0.4, 64, 20, false, 0, Math.PI * 2);
+                const brokenMaterial = new THREE.MeshPhysicalMaterial({
+                    map: ProceduralTextures.concreteBroken(), bumpMap: ProceduralTextures.concreteBroken(), bumpScale: 0.05,
+                    metalness: 0, roughness: 1.0, color: 0x808080
+                });
+                const brokenSection = new THREE.Mesh(brokenGeometry, brokenMaterial);
+                brokenSection.position.y = 1.08; group.add(brokenSection);
+
+                // Detritos e Poeira
+                const debrisGeometry = new THREE.DodecahedronGeometry(0.01, 0);
+                for (let i = 0; i < 200; i++) {
+                    const d = new THREE.Mesh(debrisGeometry, concreteMaterial);
+                    const angle = Math.random() * Math.PI * 2; const dist = 0.15 + Math.random() * 0.1;
+                    d.position.set(Math.cos(angle) * dist, 0.48, Math.sin(angle) * dist);
+                    d.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI); group.add(d);
                 }
+
+                // Texto no Concreto (25.04.18 e KpM 30)
+                const loader = new THREE.FontLoader();
+                // Three.js FontLoader requer uma fonte externa ou embutida. Para este exemplo sem arquivos,
+                // usaremos uma textura de texto procedural ou geometry simplificada.
+                const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                ConcreteSpecimen.addText(group, '25.04.18', -0.1, 0.7, 0.21, textMaterial);
+                ConcreteSpecimen.addText(group, 'KpM 30', -0.1, 0.6, 0.21, textMaterial);
+
+                return group;
             }
 
-            controls.update();
-            renderer.render(scene, camera);
+            static addText(group, text, x, y, z, material) {
+                // Geometry de texto simplificada para este exemplo sem arquivos de fonte
+                const canvas = document.createElement('canvas');
+                canvas.width = 256; canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff'; ctx.font = 'bold 40px Segoe UI'; ctx.fillText(text, 10, 50);
+                const texture = new THREE.CanvasTexture(canvas);
+                const geometry = new THREE.PlaneGeometry(0.2, 0.05);
+                const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ map: texture, transparent: true, alphaTest: 0.5 }));
+                mesh.position.set(x, y, z); group.add(mesh);
+            }
         }
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        // --- SENSORES E FIAÇÃO COMPLEXA (Curvas Procedurais) ---
+        class SensorsAndWiring {
+            static create() {
+                const group = new THREE.Group();
+                const wireMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                for (let i = 0; i < 32; i++) {
+                    // Curva procedural para fiação
+                    const points = [];
+                    points.push(new THREE.Vector3(-0.35 + (i % 8) * 0.1, 0.485, i < 8 ? -0.35 : 0.35)); // Conector base
+                    points.push(new THREE.Vector3(new THREE.MathUtils.randFloatSpread(0.6), new THREE.MathUtils.randFloat(0.5, 0.8), i < 8 ? -0.3 : 0.3)); // Meio
+                    points.push(new THREE.Vector3(new THREE.MathUtils.randFloatSpread(0.2), new THREE.MathUtils.randFloat(0.6, 1.1), new THREE.MathUtils.randFloatSpread(0.2))); // No concreto
 
-        animate();
+                    const curve = new THREE.CatmullRomCurve3(points);
+                    const tubeGeometry = new THREE.TubeGeometry(curve, 32, 0.003, 8, false);
+                    const tube = new THREE.Mesh(tubeGeometry, wireMaterial); group.add(tube);
+                }
+                return group;
+            }
+        }
+
+        // --- CONFIGURAÇÃO DA CENA PRINCIPAL ---
+        class App {
+            constructor() {
+                this.init(); this.addObjects(); this.addPostProcessing(); this.animate();
+            }
+
+            init() {
+                this.container = document.getElementById('container');
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(50, window.innerWidth / (window.innerHeight * 0.8), 0.1, 1000); // Proporção para acomodar o painel
+                this.camera.position.set(4, 3, 5); this.scene.add(this.camera);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight * 0.8);
+                this.renderer.setClearColor(0x050505); this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; this.container.appendChild(this.renderer.domElement);
+                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.target.set(0, 1.5, 0); this.controls.update();
+
+                // Iluminação
+                this.scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+                directionalLight.position.set(2, 5, 2); directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048; directionalLight.shadow.mapSize.height = 2048;
+                directionalLight.shadow.camera.near = 0.5; directionalLight.shadow.camera.far = 20; this.scene.add(directionalLight);
+
+                const spotLight = new THREE.SpotLight(0xffffff, 1);
+                spotLight.position.set(-3, 6, 4); spotLight.angle = Math.PI / 4; spotLight.castShadow = true; this.scene.add(spotLight);
+
+                // Environment Map procedural (simulando laboratório)
+                new THREE.RGBELoader().load('https://unpkg.com/three@0.160.0/examples/textures/equirectangular/venice_sunset_1k.hdr', (texture) => {
+                    texture.mapping = THREE.EquirectangularReflectionMapping;
+                    this.scene.environment = texture;
+                });
+            }
+
+            addObjects() {
+                this.base = MachineComponents.base(); this.scene.add(this.base);
+                this.crosshead = MachineComponents.upperCrosshead();
+                this.crosshead.position.y = 3.6; this.scene.add(this.crosshead);
+                this.fiosBase = MachineComponents.baseFios(); this.scene.add(this.fiosBase);
+                this.concreteSpecimen = ConcreteSpecimen.create(); this.scene.add(this.concreteSpecimen);
+                this.wiring = SensorsAndWiring.create(); this.scene.add(this.wiring);
+
+                // Painel de Controle Digital (Painel Direito)
+                const panelGroup = new THREE.Group();
+                const panelMaterial = new THREE.MeshPhysicalMaterial({
+                    map: ProceduralTextures.digitalPanel(1024, 1024),
+                    bumpMap: ProceduralTextures.brushedMetal(), bumpScale: 0.005,
+                    metalness: 0.5, roughness: 0.3
+                });
+                const panelGeometry = new THREE.PlaneGeometry(2.5, 2.5);
+                this.digitalPanelMesh = new THREE.Mesh(panelGeometry, panelMaterial);
+                this.digitalPanelMesh.position.set(3, 1.5, -1); // Posicionamento à direita da máquina
+                this.digitalPanelMesh.rotation.y = -Math.PI / 4; this.scene.add(this.digitalPanelMesh);
+
+                // Configurar Raycaster para interação com botões
+                this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
+                window.addEventListener('click', this.onClick.bind(this));
+            }
+
+            addPostProcessing() {
+                this.composer = new THREE.EffectComposer(this.renderer);
+                this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
+                this.ssaoPass = new THREE.SSAOPass(this.scene, this.camera, window.innerWidth, window.innerHeight);
+                this.ssaoPass.kernelRadius = 16; this.ssaoPass.minDistance = 0.005; this.ssaoPass.maxDistance = 0.1; this.composer.addPass(this.ssaoPass);
+                this.composer.addPass(new THREE.ToneMappingPass(THREE.ACESFilmicToneMapping, 1));
+            }
+
+            onClick(event) {
+                this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                this.mouse.y = -(event.clientY / (window.innerHeight * 0.8)) * 2 + 1;
+                this.raycaster.setFromCamera(this.mouse, this.camera);
+                // Three.js Pure raycasting nbotões no painel é complexo sem geometry de botão físico.
+                // Como este exemplo não tem botões físicos renderizados, simularemos com a barra de status.
+                // Tratar como um exemplo técnico de interação.
+                console.log('Click detectado');
+            }
+
+            animate() {
+                requestAnimationFrame(this.animate.bind(this));
+                this.controls.update(); this.composer.render();
+            }
+        }
+
+        new App();
     </script>
 </body>
 </html>
