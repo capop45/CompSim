@@ -117,14 +117,14 @@
                 border-radius: 0; width: 85%; max-width: 350px;
             }
             
-            #settings-panel { left: 0; transform: translateX(-100%); border-right: 2px solid var(--accent-color); }
+            /* Usando -110% e 110% para garantir que nenhuma sombra ou borda vaze na tela */
+            #settings-panel { left: 0; transform: translateX(-110%); border-right: 2px solid var(--accent-color); }
             #settings-panel.open { transform: translateX(0); }
             
-            #dashboard { right: 0; transform: translateX(100%); border-left: 2px solid var(--accent-color); width: 85%; }
+            #dashboard { right: 0; transform: translateX(110%); border-left: 2px solid var(--accent-color); }
             #dashboard.open { transform: translateX(0); }
 
             .close-panel { display: block; }
-            #btn-theme { display: none; } /* Oculta o alternador de tema principal no mobile para economizar espaço, opcional */
             
             #controls-bottom { bottom: 20px; width: 90%; justify-content: center; }
             #btn-play { flex-grow: 1; }
@@ -269,7 +269,7 @@
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.target.set(0, 1.5, 0);
-        controls.enablePan = false; // Evita bugar no mobile com touch
+        controls.enablePan = false;
         controls.update();
 
         // --- GERENCIAMENTO DE TEMA ---
@@ -358,38 +358,68 @@
         const maquina = new THREE.Group();
         scene.add(maquina);
 
+        // Base fixada
         const base = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.4, 1.2), matEstrutura);
         base.position.y = 0.2; base.receiveShadow = true; base.castShadow = true; maquina.add(base);
         
         const pratoInf = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.2, 0.8), matPratoVerde);
         pratoInf.position.y = 0.5; pratoInf.castShadow = true; pratoInf.receiveShadow = true; maquina.add(pratoInf);
 
+        // Elementos dinâmicos da máquina
         const topo = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.4, 1.2), matEstrutura);
-        topo.position.y = 4.2; topo.receiveShadow = true; topo.castShadow = true; maquina.add(topo);
+        topo.receiveShadow = true; topo.castShadow = true; maquina.add(topo);
         
+        const colunas = [];
         const posColunas = [[-0.75, 0.45], [0.75, 0.45], [-0.75, -0.45], [0.75, -0.45]];
         posColunas.forEach(pos => {
-            const coluna = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.4, 32), matCromoLiso);
-            coluna.position.set(pos[0], 2.2, pos[1]); coluna.castShadow = true; coluna.receiveShadow = true; maquina.add(coluna);
+            const coluna = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1, 32), matCromoLiso); // Altura 1 inicial para facilitar a escala
+            coluna.castShadow = true; coluna.receiveShadow = true; 
+            maquina.add(coluna);
+            colunas.push({ mesh: coluna, x: pos[0], z: pos[1] });
         });
 
         const conjuntoMovelSuperior = new THREE.Group();
-        const cilindroHidraulico = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 1.0, 32), matCromoRanhurado);
-        cilindroHidraulico.position.y = 0.5; cilindroHidraulico.castShadow = true; conjuntoMovelSuperior.add(cilindroHidraulico);
+        
+        // Ponto de ancoragem do pistão na base
+        const cilindroGeo = new THREE.CylinderGeometry(0.25, 0.25, 1.0, 32);
+        cilindroGeo.translate(0, 0.5, 0); 
+        const cilindroHidraulico = new THREE.Mesh(cilindroGeo, matCromoRanhurado);
+        cilindroHidraulico.castShadow = true; conjuntoMovelSuperior.add(cilindroHidraulico);
         
         const pratoSup = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.15, 0.8), matPratoVerde);
         pratoSup.position.y = -0.075; pratoSup.castShadow = true; pratoSup.receiveShadow = true; conjuntoMovelSuperior.add(pratoSup);
-        conjuntoMovelSuperior.position.y = posPrensaDescanso;
+        
         maquina.add(conjuntoMovelSuperior);
 
-        // --- CRIAÇÃO DO PILAR (LISO NO INÍCIO) ---
+        // Função que ajusta as medidas da prensa com base na altura do pilar
+        function atualizarMaquina() {
+            // Calcula a altura onde o topo da máquina precisa estar para caber o pilar e a prensa
+            const maxPrensaY = posPilarBase + alturaPilar + 0.15 + vaoInicial;
+            const topoY = maxPrensaY + 0.8; 
+            
+            topo.position.y = topoY;
+            
+            // Calculando exatamente a altura e posição das barras cilíndricas laterais
+            const baseTop = 0.4; // Topo da estrutura da base
+            const topoBottom = topoY - 0.2; // Face inferior da estrutura de topo
+            const colHeight = topoBottom - baseTop;
+            const colY = baseTop + colHeight / 2;
+            
+            colunas.forEach(c => {
+                c.mesh.scale.y = colHeight; // Estica a barra
+                c.mesh.position.set(c.x, colY, c.z); // Centraliza a barra perfeitamente
+            });
+
+            conjuntoMovelSuperior.position.y = posPrensaDescanso;
+        }
+
+        // --- CRIAÇÃO DO PILAR ---
         let pilar;
         function gerarPilar() {
             if(pilar) {
                 scene.remove(pilar);
                 pilar.geometry.dispose();
             }
-            // Cria a geometria lisa. A subdivisão (8, 16, 8) permite que deformemos os vértices mais tarde
             const geo = new THREE.BoxGeometry(larguraPilar, alturaPilar, profundidadePilar, 8, 16, 8);
             geo.translate(0, alturaPilar / 2, 0); 
             
@@ -399,30 +429,37 @@
             scene.add(pilar);
         }
         
-        // --- FUNÇÃO PARA DEFORMAR O TOPO (CHAMADA APENAS NA RUPTURA) ---
         function deformarTopoPilar() {
             if(!pilar) return;
             const pos = pilar.geometry.attributes.position;
             for(let i = 0; i < pos.count; i++) {
                 let y = pos.getY(i);
-                // O pivô está na base (0), o topo é 'alturaPilar'. Pega os vértices mais altos.
                 if (y > alturaPilar - 0.05) {
-                    pos.setY(i, y - (Math.random() * 0.12)); // Amassa randômicamente até 12cm
+                    pos.setY(i, y - (Math.random() * 0.12)); 
                 }
             }
             pos.needsUpdate = true;
-            pilar.geometry.computeVertexNormals(); // Recalcula a luz para os novos "buracos"
+            pilar.geometry.computeVertexNormals(); 
         }
 
-        gerarPilar(); // Chama na inicialização (Liso)
+        gerarPilar(); 
+        atualizarMaquina();
 
-        // Detritos
+        // Detritos - Substituído BoxGeometry por TetrahedronGeometry com escalas aleatórias
         const particulas = [];
-        const detritoGeo = new THREE.BoxGeometry(0.04, 0.04, 0.04);
         for(let i=0; i<40; i++) {
-            const p = new THREE.Mesh(detritoGeo, matPilar);
+            const geo = new THREE.TetrahedronGeometry(Math.random() * 0.04 + 0.02, 0);
+            const p = new THREE.Mesh(geo, matPilar);
+            p.scale.set(1 + Math.random(), 0.5 + Math.random(), 1 + Math.random()); // Estica irregularmente
+            p.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
             p.castShadow = true; p.visible = false; scene.add(p);
-            particulas.push({ mesh: p, vx: 0, vy: 0, vz: 0, ativo: false });
+            
+            particulas.push({ 
+                mesh: p, vx: 0, vy: 0, vz: 0, 
+                rotX: (Math.random() - 0.5) * 0.4, 
+                rotY: (Math.random() - 0.5) * 0.4, 
+                ativo: false 
+            });
         }
 
         const chao = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ opacity: 0.3 }));
@@ -438,11 +475,12 @@
             flechaMaxima = Math.max(1, Math.min(100, parseFloat(inFlecha.value)));
             maxGraficoY = cargaMaxima * 1.2;
 
-            gerarPilar(); // Recria com as novas dimensões (Liso novamente)
+            gerarPilar(); 
 
             posPrensaContato = posPilarBase + alturaPilar + 0.15; 
             posPrensaDescanso = posPrensaContato + vaoInicial;
-            conjuntoMovelSuperior.position.y = posPrensaDescanso;
+            
+            atualizarMaquina(); // Recalcula a altura de toda a máquina baseada no pilar
 
             valCargaMax.innerText = `${cargaMaxima.toFixed(2)} kN`;
             btnReset.click(); 
@@ -488,7 +526,7 @@
         btnReset.addEventListener('click', () => {
             estado = 'PARADO'; frameGrafico = 0; dadosCarga.length = 0;
             
-            gerarPilar(); // Restaura a geometria perfeitamente lisa
+            gerarPilar(); 
             conjuntoMovelSuperior.position.y = posPrensaDescanso;
             
             ctxRomp.drawImage(canvasConcreto, 0, 0);
@@ -529,6 +567,10 @@
         function animate() {
             requestAnimationFrame(animate);
 
+            // Alonga visualmente o cilindro hidráulico para simular seu acionamento fluido
+            const distPistao = (topo.position.y - 0.2) - conjuntoMovelSuperior.position.y;
+            cilindroHidraulico.scale.y = distPistao;
+
             if (estado === 'APROXIMANDO') {
                 updateStatus('Aproximando Prensa...', true);
                 conjuntoMovelSuperior.position.y -= 0.008; 
@@ -554,12 +596,11 @@
                     conjuntoMovelSuperior.position.y = posPrensaContato - descidaVisual;
                     pilar.scale.y = 1 - (descidaVisual / alturaPilar);
 
-                    // O MOMENTO EXATO DA RUPTURA
                     if(frameGrafico >= framePico) {
                         estado = 'ROMPENDO';
                         updateStatus('RUPTURA ESTRUTURAL!', true);
                         
-                        deformarTopoPilar(); // Amassa a geometria 3D agora!
+                        deformarTopoPilar(); 
                         
                         particulas.forEach(p => {
                             p.ativo = true; p.mesh.visible = true;
@@ -616,7 +657,7 @@
                     if(p.ativo) {
                         p.vy -= 0.002;
                         p.mesh.position.x += p.vx; p.mesh.position.y += p.vy; p.mesh.position.z += p.vz;
-                        p.mesh.rotation.x += 0.1; p.mesh.rotation.y += 0.1;
+                        p.mesh.rotation.x += p.rotX; p.mesh.rotation.y += p.rotY;
                         
                         let stopY = 0.02; 
                         if (Math.abs(p.mesh.position.x) < 0.4 && Math.abs(p.mesh.position.z) < 0.4) stopY = posPilarBase + 0.02;
@@ -625,7 +666,7 @@
                         if(p.mesh.position.y <= stopY) {
                             p.mesh.position.y = stopY;
                             p.vy *= -0.3; p.vx *= 0.8; p.vz *= 0.8;
-                            if(Math.abs(p.vy) < 0.005) { p.vy = 0; p.vx = 0; p.vz = 0; }
+                            if(Math.abs(p.vy) < 0.005) { p.vy = 0; p.vx = 0; p.vz = 0; p.rotX = 0; p.rotY = 0; }
                         }
                     }
                 });
